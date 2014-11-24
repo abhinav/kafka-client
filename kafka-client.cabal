@@ -1,0 +1,21 @@
+name          : kafka-client
+version       : 0.1.0.0
+synopsis      : Haskell client library for Apache Kafka.
+license       : MIT
+license-file  : LICENSE
+author        : Abhinav Gupta
+maintainer    : mail@abhinavg.net
+category      : Network
+build-type    : Simple
+cabal-version : >=1.10
+
+library
+  exposed-modules  : Kafka.V07
+  ghc-options      : -Wall
+  build-depends    : base       >= 4.7   && < 4.8
+                   , bytestring >= 0.10
+                   , cereal     >= 0.4
+                   , digest     >= 0.0.1
+                   , network    >= 2.4
+                   , time       >= 1.4
+  default-language : Haskell2010
