@@ -11,8 +11,6 @@ module Kafka.V07.Internal
     , Partition(..)
 
     , Message(..)
-    , messageCompression
-    , messagePayload
     ) where
 
 import Control.Applicative
@@ -114,15 +112,10 @@ newtype Offset = Offset Word64
 newtype Partition = Partition Word32
     deriving (Show, Read, Eq, C.Serialize)
 
-data Message = Message {-# UNPACK #-} !Compression
-                       {-# UNPACK #-} !ByteString
-  deriving (Show, Read, Eq)
-
-messageCompression :: Message -> Compression
-messageCompression (Message c _) = c
-
-messagePayload :: Message -> ByteString
-messagePayload (Message _ p) = p
+data Message = Message {
+    messageCompression :: !Compression
+  , messagePayload     :: {-# UNPACK #-} !ByteString
+  } deriving (Show, Read, Eq)
 
 -- TODO:
 -- Should the Message constructor be exposed?

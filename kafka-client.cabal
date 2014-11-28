@@ -11,6 +11,7 @@ cabal-version : >=1.10
 
 library
   exposed-modules  : Kafka.V07
+                   , Kafka.V07.Internal
   ghc-options      : -Wall
   build-depends    : base       >= 4.7   && < 4.8
                    , bytestring >= 0.10
@@ -18,4 +19,26 @@ library
                    , digest     >= 0.0.1
                    , network    >= 2.4
                    , time       >= 1.4
+
+                   -- Test suite dependencies:
+                   -- Workaround for ghc-mod #339. Uncomment while developing.
+                   -- , hspec              >= 2.0
+                   -- , hspec-discover     >= 2.1
+                   -- , QuickCheck         >= 2.5
+  default-language : Haskell2010
+
+test-suite spec
+  type             : exitcode-stdio-1.0
+  ghc-options      : -Wall
+  hs-source-dirs   : test
+  main-is          : Spec.hs
+  build-depends    : base
+                   , bytestring
+                   , cereal
+                   , hspec          >= 2.0
+                   , hspec-discover >= 2.1
+                   , QuickCheck     >= 2.5
+                   , time
+
+                   , kafka-client
   default-language : Haskell2010

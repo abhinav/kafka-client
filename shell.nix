@@ -2,4 +2,10 @@
 , haskellPackages ? pkgs.haskellPackages
 }:
 
-with haskellPackages; callPackage ./. {}
+haskellPackages.callPackage ./. {
+    cabal = haskellPackages.cabal.override {
+        extension = self: super: {
+            doCheck = true;
+        };
+    };
+}

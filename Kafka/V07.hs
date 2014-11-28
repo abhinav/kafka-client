@@ -87,6 +87,11 @@ data Offsets = Offsets {
   , offsetsMaxNumber :: Word32
   } deriving (Show, Read, Eq)
 
+-- TODO Use some sort of typeclass here to define data types which support
+-- sending requests through them. The typeclass can provide the send/recv
+-- methods necessary. That way, buffer size, etc. is hidden away in
+-- Connection. This will also allow writing dummy implementations for tests.
+
 produce :: Connection -> [Request Produce] -> IO (Response ())
 produce = undefined
 
