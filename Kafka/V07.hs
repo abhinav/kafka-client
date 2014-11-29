@@ -6,53 +6,9 @@ import Data.ByteString           (ByteString)
 import Data.Word                 (Word32)
 import Network.Socket.ByteString (recv)
 
-import qualified Control.Exception     as E
-import qualified Data.ByteString.Char8 as B8
-import qualified Data.Serialize        as C
-import qualified Network.Socket        as N
+import qualified Data.Serialize as C
 
 import Kafka.V07.Internal
-
--- TODO break into modules
--- TODO This probably belongs in Kafka.V07.Internal or something.
---      V07 should expose a friendlier interface. Possibly similar to V08 so
---      that the top-level Kafka module just exports one of them.
-
--- | A connection to Kafka.
-data Connection = Connection {
-    connAddrInfo :: N.AddrInfo
-  , connSocket   :: N.Socket
-  }
-
--- | Create a new connection.
---
--- Connects to the given hostname and port. Throws an 'N.IOException' in case
--- of failure.
-connect :: ByteString -> Int -> IO Connection
-connect host port = do
-    -- TODO Accept a config instead. Config will specify the buffer size.
-    (addrInfo:_) <- N.getAddrInfo
-                        (Just hints)
-                        (Just $ B8.unpack host)
-                        (Just $ show port)
-    socket <- N.socket N.AF_INET N.Stream N.defaultProtocol
-    N.connect socket (N.addrAddress addrInfo) `E.onException` N.close socket
-    return $ Connection addrInfo socket
-  where
-    hints = N.defaultHints {
-        N.addrFamily = N.AF_INET
-      , N.addrFlags = [N.AI_NUMERICSERV]
-      , N.addrSocketType = N.Stream
-      }
-
--- | Close a connection.
-close :: Connection -> IO ()
-close Connection{connSocket} = N.close connSocket
-
--- | Open a connection, execute the given operation on it, and ensure it is
--- closed afterwards even if an exception was thrown.
-withConnection :: ByteString -> Int -> (Connection -> IO a) -> IO a
-withConnection host port = E.bracket (connect host port) close
 
 -- | Receive the next response from the connection.
 --
