@@ -1,16 +1,17 @@
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE StandaloneDeriving         #-}
-module Kafka.V07.InternalSpec where
+module Kafka.V07.Internal.TypesSpec where
 
 import Control.Applicative
 import Test.Hspec
 import Test.QuickCheck
 
-import qualified Data.ByteString    as B
-import qualified Data.Serialize     as C
-import qualified Data.Time          as T
-import qualified Kafka.V07.Internal as I
+import qualified Data.ByteString as B
+import qualified Data.Serialize  as C
+import qualified Data.Time       as T
+
+import qualified Kafka.V07.Internal.Types as I
 
 instance Arbitrary I.Error where
     arbitrary = elements [
@@ -43,6 +44,15 @@ instance Arbitrary I.OffsetsTime where
                             <*> choose (0, 31)
         someDayTime = T.secondsToDiffTime <$> choose (0, 86400)
 
+instance Arbitrary I.RequestType where
+    arbitrary = elements [
+        I.ProduceRequestType
+      , I.FetchRequestType
+      , I.MultiFetchRequestType
+      , I.MultiProduceRequestType
+      , I.OffsetsRequestType
+      ]
+
 instance Arbitrary I.Topic where
     arbitrary = I.Topic . B.pack . getNonEmpty <$> arbitrary
 
@@ -67,6 +77,10 @@ spec = do
     describe "OffsetsTime" $
         it "serializes and deserializes" $
             property (checkSerialization :: I.OffsetsTime -> Expectation)
+
+    describe "RequestType" $
+        it "serializes and deserializes" $
+            property (checkSerialization :: I.RequestType -> Expectation)
 
     describe "Topic" $
         it "serializes and deserializes" $
