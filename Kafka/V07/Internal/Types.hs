@@ -31,7 +31,7 @@ data Error
     | InvalidMessageError   --  2
     | WrongPartitionError   --  3
     | InvalidFetchSizeError --  4
-  deriving (Show, Read, Eq)
+  deriving (Show, Read, Eq, Ord)
 
 instance C.Serialize (Maybe Error) where
     -- A note about extensions:
@@ -61,7 +61,7 @@ data Compression
     = NoCompression
     | GzipCompression
     | SnappyCompression
-  deriving (Show, Read, Eq)
+  deriving (Show, Read, Eq, Ord)
 
 instance C.Serialize Compression where
     put NoCompression     = C.putWord8 0
@@ -77,8 +77,8 @@ instance C.Serialize Compression where
 data OffsetsTime
     = OffsetsLatest
     | OffsetsEarliest
-    | OffsetsBefore UTCTime
-  deriving (Show, Read, Eq)
+    | OffsetsBefore !UTCTime
+  deriving (Show, Read, Eq, Ord)
 
 instance C.Serialize OffsetsTime where
     put OffsetsLatest = C.putWord64be (-1)
@@ -101,7 +101,7 @@ data RequestType
     | MultiFetchRequestType     -- 2
     | MultiProduceRequestType   -- 3
     | OffsetsRequestType        -- 4
-  deriving (Show, Read, Eq)
+  deriving (Show, Read, Eq, Ord)
 
 instance C.Serialize RequestType where
     put ProduceRequestType      = C.putWord16be 0
@@ -120,7 +120,7 @@ instance C.Serialize RequestType where
 
 -- | Represents a Kafka topic.
 newtype Topic = Topic ByteString
-    deriving (Show, Read, Eq)
+    deriving (Show, Read, Eq, Ord)
 
 instance C.Serialize Topic where
     put (Topic topic) = do
@@ -131,15 +131,15 @@ instance C.Serialize Topic where
         Topic <$> C.getByteString topicLength
 
 newtype Offset = Offset Word64
-    deriving (Show, Read, Eq, C.Serialize)
+    deriving (Show, Read, Eq, Ord, C.Serialize)
 
 newtype Partition = Partition Word32
-    deriving (Show, Read, Eq, C.Serialize)
+    deriving (Show, Read, Eq, Ord, C.Serialize)
 
 data Message = Message {
     messageCompression :: !Compression
   , messagePayload     :: {-# UNPACK #-} !ByteString
-  } deriving (Show, Read, Eq)
+  } deriving (Show, Read, Eq, Ord)
 
 -- TODO:
 -- Should the Message constructor be exposed?
@@ -165,13 +165,13 @@ instance C.Serialize Message where
             0 -> return NoCompression
             1 -> C.get
             _ -> fail $ "Unknown magic code: " ++ show magic
-        _ <- C.getWord32be -- checksum ignored
-        let remainingLength = messageLength -
+        C.skip 4 -- ignore checksum
+        let remainingLength = fromIntegral $
+              messageLength -
                 ( 4              -- checksum
                 + 1              -- magic
                 + (if magic == 0 -- compression (if present)
                     then 0
                     else 1))
-        payload <- C.getByteString (fromIntegral remainingLength)
-        return $ Message compression payload
+        Message compression <$> C.getByteString remainingLength
 

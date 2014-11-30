@@ -13,6 +13,7 @@ library
   exposed-modules  : Kafka.V07
                    , Kafka.V07.Internal
                    , Kafka.V07.Internal.Connection
+                   , Kafka.V07.Internal.Request
                    , Kafka.V07.Internal.Types
   ghc-options      : -Wall
   build-depends    : base       >= 4.7   && < 4.8

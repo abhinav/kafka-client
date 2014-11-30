@@ -1,58 +1,87 @@
 {-# LANGUAGE NamedFieldPuns #-}
-module Kafka.V07 where
+module Kafka.V07
+    (
+      Connection
+    , withConnection
+
+    , Produce(..)
+    , Fetch(..)
+    , Offsets(..)
+    , Response
+
+    , produce
+    , fetch
+    , offsets
+
+    , Message(..)
+
+    , Topic(..)
+    , Offset(..)
+    , Partition(..)
+
+    , Error(..)
+    , Compression(..)
+    , OffsetsTime(..)
+    ) where
 
 import Control.Applicative
-import Data.ByteString           (ByteString)
-import Data.Word                 (Word32)
-import Network.Socket.ByteString (recv)
+import Control.Monad
+import Network.Socket.ByteString (recv, sendAll)
 
 import qualified Data.Serialize as C
 
 import Kafka.V07.Internal
 
+type Response a = Either Error a
+
 -- | Receive the next response from the connection.
 --
 -- The response is either an 'Error' or a 'ByteString' containing the response
 -- body.
-recvResponse :: Connection -> IO (Response ByteString)
-recvResponse Connection{connSocket} = do
-    header <- recv connSocket 6
-    -- TODO Maybe use something like a ProtocolError for parse errors.
-    (respLen, err) <- either fail return $
-        C.runGet ((,) <$> getLength
-                      <*> C.get) header
-    body <- recv connSocket (respLen - 2)
-    return $ maybe (Right body) Left err
+recvResponse
+    :: Connection
+    -> C.Get a
+    -> IO (Response a)
+recvResponse Connection{connSocket} parse = do
+    -- TODO use protocol error or something for parse errors instead of this
+    -- TODO maybe also catch IO exceptions
+    respLen <- C.runGet getLength <$> recv connSocket 4 >>= either fail return
+    response <- recv connSocket respLen
+    (err, body) <- either fail return
+                 $ C.runGet ((,) <$> C.get <*> parse) response
+    case err of
+        Just e -> return (Left e)
+        Nothing -> return (Right body)
   where
     getLength = fromIntegral <$> C.getWord32be
 
-data Request a = Request Topic Partition a
-type Response a = Either Error a
-
-newtype Produce = Produce {
-    produceMessages :: [Message]
-  } deriving (Show, Read, Eq)
-
-data Fetch = Fetch {
-    fetchOffset  :: Offset
-  , fetchMaxSize :: Word32
-  } deriving (Show, Read, Eq)
-
-data Offsets = Offsets {
-    offsetsTime      :: OffsetsTime
-  , offsetsMaxNumber :: Word32
-  } deriving (Show, Read, Eq)
-
 -- TODO Use some sort of typeclass here to define data types which support
 -- sending requests through them. The typeclass can provide the send/recv
--- methods necessary. That way, buffer size, etc. is hidden away in
--- Connection. This will also allow writing dummy implementations for tests.
+-- methods. That way, buffer size and other transport-specific things are
+-- hidden away. This will also allow writing dummy transports for tests.
 
-produce :: Connection -> [Request Produce] -> IO (Response ())
-produce = undefined
+produce :: Connection -> [Produce] -> IO ()
+produce _ [] = return ()
+produce Connection{connSocket} reqs =
+    sendAll connSocket . C.runPut $
+        case reqs of
+            [x] -> putProduceRequest x
+            xs  -> putMultiProduceRequest xs
 
-fetch :: Connection -> [Request Fetch] -> IO (Response [Message])
-fetch = undefined
+-- this should probably be a list of lists -- a list of messages for each
+-- fetch request.
+fetch :: Connection -> [Fetch] -> IO (Response [Message])
+fetch _ [] = return (Right [])
+fetch conn@Connection{connSocket} reqs = do
+    sendAll connSocket . C.runPut $
+        case reqs of
+            [x] -> putFetchRequest x
+            xs -> putMultiFetchRequest xs
+    recvResponse conn (many C.get)
 
-offsets :: Connection -> Request Offsets -> IO (Response [Offset])
-offsets = undefined
+offsets :: Connection -> Offsets -> IO (Response [Offset])
+offsets conn@Connection{connSocket} req = do
+    sendAll connSocket . C.runPut $ putOffsetsRequest req
+    recvResponse conn $ do
+        count <- C.getWord32be
+        replicateM (fromIntegral count) C.get
