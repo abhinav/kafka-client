@@ -24,7 +24,7 @@ import Kafka.V07.Internal.Types
 putWithCountPrefix :: Foldable f => f a -> C.Putter a -> C.Put
 putWithCountPrefix xs put =
     let (count, p) = Fold.foldr' go (0, pure ()) xs
-    in C.putWord32be count *> p
+    in C.putWord16be count *> p
   where
     go a (c, p) = (c + 1, put a *> p)
 
@@ -48,7 +48,7 @@ encodeProduce :: Produce -> C.Put
 encodeProduce (Produce topic partition messages) = do
     C.put topic
     C.put partition
-    putWithCountPrefix messages C.put
+    putWithLengthPrefix $ Fold.mapM_ C.put messages
 
 putProduceRequest :: Produce -> C.Put
 putProduceRequest =
