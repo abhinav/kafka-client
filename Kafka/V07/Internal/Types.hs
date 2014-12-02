@@ -1,5 +1,4 @@
 {-# LANGUAGE FlexibleInstances          #-}
-{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE OverlappingInstances       #-}
 module Kafka.V07.Internal.Types
     ( Error(..)
@@ -131,10 +130,18 @@ instance C.Serialize Topic where
         Topic <$> C.getByteString topicLength
 
 newtype Offset = Offset Word64
-    deriving (Show, Read, Eq, Ord, C.Serialize)
+    deriving (Show, Read, Eq, Ord)
+
+instance C.Serialize Offset where
+    put (Offset o) = C.putWord64be o
+    get = Offset <$> C.getWord64be
 
 newtype Partition = Partition Word32
-    deriving (Show, Read, Eq, Ord, C.Serialize)
+    deriving (Show, Read, Eq, Ord)
+
+instance C.Serialize Partition where
+    put (Partition p) = C.putWord32be p
+    get = Partition <$> C.getWord32be
 
 data Message = Message {
     messageCompression :: !Compression
