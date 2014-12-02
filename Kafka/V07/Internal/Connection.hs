@@ -13,11 +13,17 @@ import qualified Control.Exception     as E
 import qualified Data.ByteString.Char8 as B8
 import qualified Network.Socket        as N
 
+import Kafka.V07.Internal.Transport
+
 -- | A connection to Kafka.
 data Connection = Connection {
     connAddrInfo :: N.AddrInfo
   , connSocket   :: N.Socket
   }
+
+instance Transport Connection where
+    send = send . connSocket
+    recv = recv . connSocket
 
 getAddrInfo :: ByteString -> Int -> IO N.AddrInfo
 getAddrInfo host port = head <$>

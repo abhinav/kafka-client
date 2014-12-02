@@ -3,6 +3,7 @@ module Kafka.V07
     (
       Connection
     , withConnection
+    , Transport(..)
 
     , Produce(..)
     , Fetch(..)
@@ -26,7 +27,6 @@ module Kafka.V07
 
 import Control.Applicative
 import Control.Monad
-import Network.Socket.ByteString (recv, sendAll)
 
 import qualified Data.Serialize as C
 
@@ -39,14 +39,15 @@ type Response a = Either Error a
 -- The response is either an 'Error' or a 'ByteString' containing the response
 -- body.
 recvResponse
-    :: Connection
+    :: Transport t
+    => t
     -> C.Get a
     -> IO (Response a)
-recvResponse Connection{connSocket} parse = do
+recvResponse transport parse = do
     -- TODO use protocol error or something for parse errors instead of this
     -- TODO maybe also catch IO exceptions
-    respLen <- C.runGet getLength <$> recv connSocket 4 >>= either fail return
-    response <- recv connSocket respLen
+    respLen <- C.runGet getLength <$> recv transport 4 >>= either fail return
+    response <- recv transport respLen
     (err, body) <- either fail return
                  $ C.runGet ((,) <$> C.get <*> parse) response
     case err of
@@ -55,33 +56,28 @@ recvResponse Connection{connSocket} parse = do
   where
     getLength = fromIntegral <$> C.getWord32be
 
--- TODO Use some sort of typeclass here to define data types which support
--- sending requests through them. The typeclass can provide the send/recv
--- methods. That way, buffer size and other transport-specific things are
--- hidden away. This will also allow writing dummy transports for tests.
-
-produce :: Connection -> [Produce] -> IO ()
+produce :: Transport t => t -> [Produce] -> IO ()
 produce _ [] = return ()
-produce Connection{connSocket} reqs =
-    sendAll connSocket . C.runPut $
+produce transport reqs =
+    send transport . C.runPut $
         case reqs of
             [x] -> putProduceRequest x
             xs  -> putMultiProduceRequest xs
 
 -- this should probably be a list of lists -- a list of messages for each
 -- fetch request.
-fetch :: Connection -> [Fetch] -> IO (Response [Message])
+fetch :: Transport t => t -> [Fetch] -> IO (Response [Message])
 fetch _ [] = return (Right [])
-fetch conn@Connection{connSocket} reqs = do
-    sendAll connSocket . C.runPut $
+fetch transport reqs = do
+    send transport . C.runPut $
         case reqs of
             [x] -> putFetchRequest x
             xs -> putMultiFetchRequest xs
-    recvResponse conn (many C.get)
+    recvResponse transport (many C.get)
 
-offsets :: Connection -> Offsets -> IO (Response [Offset])
-offsets conn@Connection{connSocket} req = do
-    sendAll connSocket . C.runPut $ putOffsetsRequest req
-    recvResponse conn $ do
+offsets :: Transport t => t -> Offsets -> IO (Response [Offset])
+offsets transport req = do
+    send transport . C.runPut $ putOffsetsRequest req
+    recvResponse transport $ do
         count <- C.getWord32be
         replicateM (fromIntegral count) C.get
