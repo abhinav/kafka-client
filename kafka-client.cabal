@@ -22,7 +22,9 @@ library
                    , cereal     >= 0.4
                    , digest     >= 0.0.1
                    , network    >= 2.4
+                   , snappy     >= 0.2
                    , time       >= 1.4
+                   , zlib       >= 0.5
 
                    -- Test suite dependencies:
                    -- Workaround for ghc-mod #339. Uncomment while developing.

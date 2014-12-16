@@ -27,8 +27,11 @@ module Kafka.V07
 
 import Control.Applicative
 import Control.Monad
+import Data.ByteString.Lazy (fromStrict, toStrict)
 
-import qualified Data.Serialize as C
+import qualified Codec.Compression.GZip   as GZip
+import qualified Codec.Compression.Snappy as Snappy
+import qualified Data.Serialize           as C
 
 import Kafka.V07.Internal
 
@@ -73,7 +76,7 @@ fetch transport reqs = do
         case reqs of
             [x] -> putFetchRequest x
             xs -> putMultiFetchRequest xs
-    recvResponse transport (many C.get)
+    fmap decodeMessages <$> recvResponse transport C.get
 
 offsets :: Transport t => t -> Offsets -> IO (Response [Offset])
 offsets transport req = do
@@ -81,3 +84,12 @@ offsets transport req = do
     recvResponse transport $ do
         count <- C.getWord32be
         replicateM (fromIntegral count) C.get
+
+decodeMessages :: Message -> [Message]
+decodeMessages msg@(Message NoCompression _) = [msg]
+decodeMessages (Message SnappyCompression payload) =
+    either error decodeMessages $ C.runGet C.get (Snappy.decompress payload)
+decodeMessages (Message GzipCompression payload) =
+    either error decodeMessages $ C.runGet C.get (gzipDecompress payload)
+  where
+    gzipDecompress = toStrict . GZip.decompress . fromStrict

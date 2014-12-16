@@ -1,5 +1,5 @@
-{-# LANGUAGE FlexibleInstances          #-}
-{-# LANGUAGE OverlappingInstances       #-}
+{-# LANGUAGE FlexibleInstances    #-}
+{-# LANGUAGE OverlappingInstances #-}
 module Kafka.V07.Internal.Types
     ( Error(..)
     , Compression(..)
@@ -172,13 +172,15 @@ instance C.Serialize Message where
             0 -> return NoCompression
             1 -> C.get
             _ -> fail $ "Unknown magic code: " ++ show magic
-        C.skip 4 -- ignore checksum
+        checksum <- C.getWord32be
         let remainingLength = fromIntegral $
               messageLength -
-                ( 4              -- checksum
-                + 1              -- magic
-                + (if magic == 0 -- compression (if present)
-                    then 0
-                    else 1))
-        Message compression <$> C.getByteString remainingLength
+                ( 4                  -- checksum
+                + 1                  -- magic
+                + fromIntegral magic -- compression (1 byte if magic is 1)
+                )
+        payload <- C.getByteString remainingLength
+        if crc32 payload == checksum
+          then return (Message compression payload)
+          else fail "Checksum did not match."
 
