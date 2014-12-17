@@ -76,7 +76,7 @@ fetch transport reqs = do
         case reqs of
             [x] -> putFetchRequest x
             xs -> putMultiFetchRequest xs
-    fmap decodeMessages <$> recvResponse transport C.get
+    fmap (concatMap decodeMessages) <$> recvResponse transport (many C.get)
 
 offsets :: Transport t => t -> Offsets -> IO (Response [Offset])
 offsets transport req = do
@@ -88,8 +88,13 @@ offsets transport req = do
 decodeMessages :: Message -> [Message]
 decodeMessages msg@(Message NoCompression _) = [msg]
 decodeMessages (Message SnappyCompression payload) =
-    either error decodeMessages $ C.runGet C.get (Snappy.decompress payload)
+    either error (concatMap decodeMessages) $
+    parse (Snappy.decompress payload)
+  where
+    parse = C.runGet (many C.get)
 decodeMessages (Message GzipCompression payload) =
-    either error decodeMessages $ C.runGet C.get (gzipDecompress payload)
+    either error (concatMap decodeMessages) $
+    parse (gzipDecompress payload)
   where
     gzipDecompress = toStrict . GZip.decompress . fromStrict
+    parse = C.runGet (many C.get)
