@@ -14,6 +14,8 @@ module Kafka.V07.Internal.Request (
 import Control.Applicative
 import Data.Foldable       (Foldable)
 import Data.Word           (Word32)
+import Data.ByteString (ByteString)
+import Data.Sequence (Seq)
 
 import qualified Data.ByteString as B
 import qualified Data.Foldable   as Fold
@@ -41,14 +43,14 @@ encodeRequest reqType p = putWithLengthPrefix $ C.put reqType >> p
 data Produce =
     Produce {-# UNPACK #-} !Topic
             {-# UNPACK #-} !Partition
-                           [Message]
+                           (Seq ByteString)
   deriving (Show, Read, Eq)
 
 encodeProduce :: Produce -> C.Put
 encodeProduce (Produce topic partition messages) = do
     C.put topic
     C.put partition
-    putWithLengthPrefix $ Fold.mapM_ C.put messages
+    putWithLengthPrefix (C.put (MessageSet messages))
 
 putProduceRequest :: Produce -> C.Put
 putProduceRequest =
@@ -65,6 +67,7 @@ data Fetch =
           {-# UNPACK #-} !Offset
           {-# UNPACK #-} !Word32
   deriving (Show, Read, Eq)
+-- TODO Add newtype for MaxSize
 
 encodeFetch :: Fetch -> C.Put
 encodeFetch (Fetch topic partition offset maxSize) = do

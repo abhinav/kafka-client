@@ -20,6 +20,7 @@ library
   build-depends    : base       >= 4.7   && < 4.8
                    , bytestring >= 0.10
                    , cereal     >= 0.4
+                   , containers >= 0.5
                    , digest     >= 0.0.1
                    , network    >= 2.4
                    , snappy     >= 0.2

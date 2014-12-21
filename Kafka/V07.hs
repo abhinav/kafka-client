@@ -14,8 +14,6 @@ module Kafka.V07
     , fetch
     , offsets
 
-    , Message(..)
-
     , Topic(..)
     , Offset(..)
     , Partition(..)
@@ -26,12 +24,12 @@ module Kafka.V07
     ) where
 
 import Control.Applicative
+import Data.ByteString (ByteString)
+import Data.Sequence (Seq)
 import Control.Monad
-import Data.ByteString.Lazy (fromStrict, toStrict)
+import Data.Monoid
 
-import qualified Codec.Compression.GZip   as GZip
-import qualified Codec.Compression.Snappy as Snappy
-import qualified Data.Serialize           as C
+import qualified Data.Serialize as C
 
 import Kafka.V07.Internal
 
@@ -69,14 +67,14 @@ produce transport reqs =
 
 -- this should probably be a list of lists -- a list of messages for each
 -- fetch request.
-fetch :: Transport t => t -> [Fetch] -> IO (Response [Message])
-fetch _ [] = return (Right [])
+fetch :: Transport t => t -> [Fetch] -> IO (Response (Seq ByteString))
+fetch _ [] = return (Right mempty)
 fetch transport reqs = do
     send transport . C.runPut $
         case reqs of
             [x] -> putFetchRequest x
             xs -> putMultiFetchRequest xs
-    fmap (concatMap decodeMessages) <$> recvResponse transport (many C.get)
+    fmap (fromMessageSet . mconcat) <$> recvResponse transport (many C.get)
 
 offsets :: Transport t => t -> Offsets -> IO (Response [Offset])
 offsets transport req = do
@@ -84,17 +82,3 @@ offsets transport req = do
     recvResponse transport $ do
         count <- C.getWord32be
         replicateM (fromIntegral count) C.get
-
-decodeMessages :: Message -> [Message]
-decodeMessages msg@(Message NoCompression _) = [msg]
-decodeMessages (Message SnappyCompression payload) =
-    either error (concatMap decodeMessages) $
-    parse (Snappy.decompress payload)
-  where
-    parse = C.runGet (many C.get)
-decodeMessages (Message GzipCompression payload) =
-    either error (concatMap decodeMessages) $
-    parse (gzipDecompress payload)
-  where
-    gzipDecompress = toStrict . GZip.decompress . fromStrict
-    parse = C.runGet (many C.get)

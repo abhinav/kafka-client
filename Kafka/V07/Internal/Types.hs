@@ -1,5 +1,7 @@
 {-# LANGUAGE FlexibleInstances    #-}
+{-# LANGUAGE NamedFieldPuns       #-}
 {-# LANGUAGE OverlappingInstances #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 module Kafka.V07.Internal.Types
     ( Error(..)
     , Compression(..)
@@ -11,17 +13,26 @@ module Kafka.V07.Internal.Types
     , Partition(..)
 
     , Message(..)
+    , MessageSet(..)
     ) where
 
 import Control.Applicative
+import Data.Monoid
 import Data.ByteString       (ByteString)
+import Data.ByteString.Lazy  (fromStrict, toStrict)
 import Data.Digest.CRC32     (crc32)
+import Data.Sequence         (Seq)
 import Data.Time             (UTCTime)
 import Data.Time.Clock.POSIX
+import Data.String
 import Data.Word
 
-import qualified Data.ByteString as B
-import qualified Data.Serialize  as C
+import qualified Codec.Compression.GZip   as GZip
+import qualified Codec.Compression.Snappy as Snappy
+import qualified Data.ByteString          as B
+import qualified Data.Foldable            as Fold
+import qualified Data.Sequence            as Seq
+import qualified Data.Serialize           as C
 
 -- | Different errors returned by Kafka.
 data Error
@@ -56,6 +67,7 @@ instance C.Serialize (Maybe Error) where
     put (Just InvalidFetchSizeError) = C.putWord16be 4
     put (Just          UnknownError) = C.putWord16be (-1)
 
+-- | Different forms of compression supported by the Kafka 0.7 protocol.
 data Compression
     = NoCompression
     | GzipCompression
@@ -119,7 +131,7 @@ instance C.Serialize RequestType where
 
 -- | Represents a Kafka topic.
 newtype Topic = Topic ByteString
-    deriving (Show, Read, Eq, Ord)
+    deriving (Show, Read, Eq, Ord, IsString)
 
 instance C.Serialize Topic where
     put (Topic topic) = do
@@ -143,15 +155,16 @@ instance C.Serialize Partition where
     put (Partition p) = C.putWord32be p
     get = Partition <$> C.getWord32be
 
+-- | Represents a Message being sent through Kafka.
 data Message = Message {
     messageCompression :: !Compression
-  , messagePayload     :: {-# UNPACK #-} !ByteString
+  -- ^ Compression used for the message.
+  --
+  -- If this is anything but 'NoCompression', this message probably contains
+  -- other messages in it.
+  , messagePayload     :: !ByteString
+  -- ^ Message payload.
   } deriving (Show, Read, Eq, Ord)
-
--- TODO:
--- Should the Message constructor be exposed?
--- Should the caller be responsible for compressing the data?
--- We can use zlib and snappy to compress and decompress if necessary.
 
 instance C.Serialize Message where
     put (Message compression payload) = do
@@ -184,3 +197,27 @@ instance C.Serialize Message where
           then return (Message compression payload)
           else fail "Checksum did not match."
 
+-- | Represents a collection of message payloads.
+--
+-- These are compressed into a single message when being sent.
+newtype MessageSet = MessageSet { fromMessageSet :: Seq ByteString }
+    deriving (Show, Read, Eq, Monoid)
+
+instance C.Serialize MessageSet where
+    put (MessageSet messages) = C.put (Message SnappyCompression payload)
+      where
+        payload = Snappy.compress . C.runPut $ Fold.mapM_ C.put messages
+
+    get = decompress <$> C.get >>= either fail (return . MessageSet)
+      where
+        decompress :: Message -> Either String (Seq ByteString)
+        decompress (Message NoCompression payload) =
+            Right $ Seq.singleton payload
+        decompress (Message SnappyCompression payload) =
+            decompressWith Snappy.decompress payload
+        decompress (Message GzipCompression payload) =
+            decompressWith (toStrict . GZip.decompress . fromStrict) payload
+
+        decompressWith decompressor payload = do
+            messages <- C.runGet (many C.get) (decompressor payload)
+            foldr1 (<>) <$> mapM decompress messages
