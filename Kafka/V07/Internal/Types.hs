@@ -1,7 +1,7 @@
-{-# LANGUAGE FlexibleInstances    #-}
-{-# LANGUAGE NamedFieldPuns       #-}
-{-# LANGUAGE OverlappingInstances #-}
+{-# LANGUAGE FlexibleInstances          #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE NamedFieldPuns             #-}
+{-# LANGUAGE OverlappingInstances       #-}
 module Kafka.V07.Internal.Types
     ( Error(..)
     , Compression(..)
@@ -11,20 +11,22 @@ module Kafka.V07.Internal.Types
     , Topic(..)
     , Offset(..)
     , Partition(..)
+    , Size(..)
+    , Count(..)
 
     , Message(..)
     , MessageSet(..)
     ) where
 
 import Control.Applicative
-import Data.Monoid
 import Data.ByteString       (ByteString)
 import Data.ByteString.Lazy  (fromStrict, toStrict)
 import Data.Digest.CRC32     (crc32)
+import Data.Monoid
 import Data.Sequence         (Seq)
+import Data.String
 import Data.Time             (UTCTime)
 import Data.Time.Clock.POSIX
-import Data.String
 import Data.Word
 
 import qualified Codec.Compression.GZip   as GZip
@@ -142,18 +144,32 @@ instance C.Serialize Topic where
         Topic <$> C.getByteString topicLength
 
 newtype Offset = Offset Word64
-    deriving (Show, Read, Eq, Ord)
+    deriving (Show, Read, Eq, Ord, Num)
 
 instance C.Serialize Offset where
     put (Offset o) = C.putWord64be o
     get = Offset <$> C.getWord64be
 
 newtype Partition = Partition Word32
-    deriving (Show, Read, Eq, Ord)
+    deriving (Show, Read, Eq, Ord, Num)
 
 instance C.Serialize Partition where
     put (Partition p) = C.putWord32be p
     get = Partition <$> C.getWord32be
+
+newtype Size = Size Word32
+    deriving (Show, Read, Eq, Ord, Num)
+
+instance C.Serialize Size where
+    put (Size s) = C.putWord32be s
+    get = Size <$> C.getWord32be
+
+newtype Count = Count Word32
+    deriving (Show, Read, Eq, Ord, Num)
+
+instance C.Serialize Count where
+    put (Count s) = C.putWord32be s
+    get = Count <$> C.getWord32be
 
 -- | Represents a Message being sent through Kafka.
 data Message = Message {

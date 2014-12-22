@@ -17,6 +17,8 @@ module Kafka.V07
     , Topic(..)
     , Offset(..)
     , Partition(..)
+    , Size(..)
+    , Count(..)
 
     , Error(..)
     , Compression(..)
@@ -24,10 +26,10 @@ module Kafka.V07
     ) where
 
 import Control.Applicative
-import Data.ByteString (ByteString)
-import Data.Sequence (Seq)
 import Control.Monad
+import Data.ByteString     (ByteString)
 import Data.Monoid
+import Data.Sequence       (Seq)
 
 import qualified Data.Serialize as C
 

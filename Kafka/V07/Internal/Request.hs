@@ -12,10 +12,9 @@ module Kafka.V07.Internal.Request (
     ) where
 
 import Control.Applicative
+import Data.ByteString     (ByteString)
 import Data.Foldable       (Foldable)
-import Data.Word           (Word32)
-import Data.ByteString (ByteString)
-import Data.Sequence (Seq)
+import Data.Sequence       (Seq)
 
 import qualified Data.ByteString as B
 import qualified Data.Foldable   as Fold
@@ -65,16 +64,15 @@ data Fetch =
     Fetch {-# UNPACK #-} !Topic
           {-# UNPACK #-} !Partition
           {-# UNPACK #-} !Offset
-          {-# UNPACK #-} !Word32
+          {-# UNPACK #-} !Size
   deriving (Show, Read, Eq)
--- TODO Add newtype for MaxSize
 
 encodeFetch :: Fetch -> C.Put
 encodeFetch (Fetch topic partition offset maxSize) = do
     C.put topic
     C.put partition
     C.put offset
-    C.putWord32be maxSize
+    C.put maxSize
 
 putFetchRequest :: Fetch -> C.Put
 putFetchRequest = encodeRequest FetchRequestType . encodeFetch
@@ -88,7 +86,7 @@ data Offsets =
     Offsets {-# UNPACK #-} !Topic
             {-# UNPACK #-} !Partition
                            !OffsetsTime
-            {-# UNPACK #-} !Word32
+            {-# UNPACK #-} !Count
   deriving (Show, Read, Eq)
 
 putOffsetsRequest :: Offsets -> C.Put
@@ -97,5 +95,5 @@ putOffsetsRequest (Offsets topic partition time maxNumber) =
         C.put topic
         C.put partition
         C.put time
-        C.putWord32be maxNumber
+        C.put maxNumber
 
