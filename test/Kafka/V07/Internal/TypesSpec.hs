@@ -4,6 +4,7 @@
 module Kafka.V07.Internal.TypesSpec where
 
 import Control.Applicative
+import Data.Sequence       (fromList)
 import Test.Hspec
 import Test.QuickCheck
 
@@ -58,11 +59,19 @@ instance Arbitrary I.Topic where
 
 deriving instance Arbitrary I.Offset
 deriving instance Arbitrary I.Partition
+deriving instance Arbitrary I.Size
+deriving instance Arbitrary I.Count
 
 instance Arbitrary I.Message where
     arbitrary =
         I.Message <$> arbitrary
                   <*> (B.pack . getNonEmpty <$> arbitrary)
+
+instance Arbitrary I.MessageSet where
+    arbitrary =
+        I.MessageSet . fromList <$> listOf1 somePayload
+      where
+        somePayload = B.pack . getNonEmpty <$> arbitrary
 
 spec :: Spec
 spec = do
@@ -94,9 +103,23 @@ spec = do
         it "serializes and deserializes" $
             property (checkSerialization :: I.Partition -> Expectation)
 
+    describe "Size" $
+        it "serializes and deserializes" $
+            property (checkSerialization :: I.Size -> Expectation)
+
+    describe "Count" $
+        it "serializes and deserializes" $
+            property (checkSerialization :: I.Count -> Expectation)
+
     describe "Message" $
         it "serializes and deserializes" $
             property (checkSerialization :: I.Message -> Expectation)
+        -- TODO: Test for 0.6 version of message (which doesn't contain the
+        -- compression field).
+
+    describe "MessageSet" $
+        it "serializes and deserializes" $
+            property (checkSerialization :: I.MessageSet -> Expectation)
         -- TODO: Test for 0.6 version of message (which doesn't contain the
         -- compression field).
 

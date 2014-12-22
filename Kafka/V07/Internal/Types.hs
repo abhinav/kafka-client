@@ -222,7 +222,8 @@ newtype MessageSet = MessageSet { fromMessageSet :: Seq ByteString }
 instance C.Serialize MessageSet where
     put (MessageSet messages) = C.put (Message SnappyCompression payload)
       where
-        payload = Snappy.compress . C.runPut $ Fold.mapM_ C.put messages
+        payload = Snappy.compress . C.runPut $
+                    Fold.mapM_ (C.put . Message NoCompression) messages
 
     get = decompress <$> C.get >>= either fail (return . MessageSet)
       where
@@ -236,4 +237,4 @@ instance C.Serialize MessageSet where
 
         decompressWith decompressor payload = do
             messages <- C.runGet (many C.get) (decompressor payload)
-            foldr1 (<>) <$> mapM decompress messages
+            foldr (<>) Seq.empty <$> mapM decompress messages

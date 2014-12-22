@@ -42,6 +42,7 @@ test-suite spec
   build-depends    : base
                    , bytestring
                    , cereal
+                   , containers
                    , hspec          >= 2.0
                    , hspec-discover >= 2.1
                    , QuickCheck     >= 2.5
