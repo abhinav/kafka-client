@@ -14,6 +14,7 @@ library
                    , Kafka.V07.Internal
                    , Kafka.V07.Internal.Connection
                    , Kafka.V07.Internal.Request
+                   , Kafka.V07.Internal.Response
                    , Kafka.V07.Internal.Transport
                    , Kafka.V07.Internal.Types
   ghc-options      : -Wall

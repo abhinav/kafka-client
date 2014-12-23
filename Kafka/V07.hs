@@ -26,16 +26,11 @@ module Kafka.V07
     ) where
 
 import Control.Applicative
-import Control.Monad
-import Data.ByteString     (ByteString)
 import Data.Monoid
-import Data.Sequence       (Seq)
 
 import qualified Data.Serialize as C
 
 import Kafka.V07.Internal
-
-type Response a = Either Error a
 
 -- | Receive the next response from the connection.
 --
@@ -50,37 +45,28 @@ recvResponse transport parse = do
     -- TODO use protocol error or something for parse errors instead of this
     -- TODO maybe also catch IO exceptions
     respLen <- C.runGet getLength <$> recv transport 4 >>= either fail return
-    response <- recv transport respLen
-    (err, body) <- either fail return
-                 $ C.runGet ((,) <$> C.get <*> parse) response
-    case err of
-        Just e -> return (Left e)
-        Nothing -> return (Right body)
+    response <- recvExactly transport respLen
+    either fail return $ C.runGet (getResponse parse) response
   where
     getLength = fromIntegral <$> C.getWord32be
 
 produce :: Transport t => t -> [Produce] -> IO ()
-produce _ [] = return ()
-produce transport reqs =
-    send transport . C.runPut $
-        case reqs of
-            [x] -> putProduceRequest x
-            xs  -> putMultiProduceRequest xs
+produce transport reqs = case reqs of
+  []  -> return ()
+  [x] -> send transport (C.runPut $ putProduceRequest x)
+  xs  -> send transport (C.runPut $ putMultiProduceRequest xs)
 
--- this should probably be a list of lists -- a list of messages for each
--- fetch request.
-fetch :: Transport t => t -> [Fetch] -> IO (Response (Seq ByteString))
-fetch _ [] = return (Right mempty)
-fetch transport reqs = do
-    send transport . C.runPut $
-        case reqs of
-            [x] -> putFetchRequest x
-            xs -> putMultiFetchRequest xs
-    fmap (fromMessageSet . mconcat) <$> recvResponse transport (many C.get)
+fetch :: Transport t => t -> [Fetch] -> IO (Response [FetchResponse])
+fetch transport reqs = case reqs of
+  [] -> return (Right mempty)
+  [x] -> do
+    send transport (C.runPut $ putFetchRequest x)
+    fmap (:[]) <$> recvResponse transport getFetchResponse
+  xs -> do
+    send transport (C.runPut $ putMultiFetchRequest xs)
+    recvResponse transport (getMultiFetchResponse $ length xs)
 
 offsets :: Transport t => t -> Offsets -> IO (Response [Offset])
 offsets transport req = do
-    send transport . C.runPut $ putOffsetsRequest req
-    recvResponse transport $ do
-        count <- C.getWord32be
-        replicateM (fromIntegral count) C.get
+    send transport (C.runPut $ putOffsetsRequest req)
+    recvResponse transport getOffsetsResponse
