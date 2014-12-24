@@ -114,14 +114,10 @@ spec = do
     describe "Message" $
         it "serializes and deserializes" $
             property (checkSerialization :: I.Message -> Expectation)
-        -- TODO: Test for 0.6 version of message (which doesn't contain the
-        -- compression field).
 
     describe "MessageSet" $
         it "serializes and deserializes" $
             property (checkSerialization :: I.MessageSet -> Expectation)
-        -- TODO: Test for 0.6 version of message (which doesn't contain the
-        -- compression field).
 
 -- | Check that the given serializable item serializes correctly in both
 -- directions.

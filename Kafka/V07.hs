@@ -41,14 +41,20 @@ recvResponse
     => t
     -> C.Get a
     -> IO (Response a)
-recvResponse transport parse = do
+recvResponse transport getBody = do
     -- TODO use protocol error or something for parse errors instead of this
     -- TODO maybe also catch IO exceptions
     respLen <- C.runGet getLength <$> recv transport 4 >>= either fail return
     response <- recvExactly transport respLen
-    either fail return $ C.runGet (getResponse parse) response
+    either fail return $ C.runGet getResponse response
   where
     getLength = fromIntegral <$> C.getWord32be
+    getResponse = do
+        err <- C.get
+        body <- getBody
+        case err of
+            Just e -> return (Left e)
+            Nothing -> return (Right body)
 
 produce :: Transport t => t -> [Produce] -> IO ()
 produce transport reqs = case reqs of
