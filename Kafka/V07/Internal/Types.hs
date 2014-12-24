@@ -225,16 +225,18 @@ instance C.Serialize MessageSet where
         payload = Snappy.compress . C.runPut $
                     Fold.mapM_ (C.put . Message NoCompression) messages
 
-    get = decompress <$> C.get >>= either fail (return . MessageSet)
+    get = MessageSet <$> (C.get >>= readMessages)
       where
-        decompress :: Message -> Either String (Seq ByteString)
-        decompress (Message NoCompression payload) =
-            Right $ Seq.singleton payload
-        decompress (Message SnappyCompression payload) =
-            decompressWith Snappy.decompress payload
-        decompress (Message GzipCompression payload) =
-            decompressWith (toStrict . GZip.decompress . fromStrict) payload
-
-        decompressWith decompressor payload = do
-            messages <- C.runGet (many C.get) (decompressor payload)
-            foldr (<>) Seq.empty <$> mapM decompress messages
+        readMessages :: Message -> C.Get (Seq ByteString)
+        readMessages (Message NoCompression payload) =
+            return (Seq.singleton payload)
+        readMessages (Message compression payload) = do
+            messages <- either fail return $
+                        C.runGet (many C.get) decompressedPayload
+            mconcat <$> mapM readMessages messages
+          where
+            decompressedPayload = decompress payload
+            decompress = case compression of
+              NoCompression -> id
+              SnappyCompression -> Snappy.decompress
+              GzipCompression -> toStrict . GZip.decompress . fromStrict
