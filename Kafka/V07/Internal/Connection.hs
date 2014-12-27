@@ -55,6 +55,10 @@ close Connection{connSocket} = N.close connSocket
 
 -- | Open a connection, execute the given operation on it, and ensure it is
 -- closed afterwards even if an exception was thrown.
+--
+-- @
+-- withConnection "localhost" 9092 $ \conn -> doStuff conn >> fail "error"
+-- @
 withConnection :: ByteString -> Int -> (Connection -> IO a) -> IO a
 withConnection host port = E.bracket (connect host port) close
 

@@ -14,7 +14,6 @@ module Kafka.V07.Internal.Request (
 import Control.Applicative
 import Data.ByteString     (ByteString)
 import Data.Foldable       (Foldable)
-import Data.Sequence       (Seq)
 
 import qualified Data.ByteString as B
 import qualified Data.Foldable   as Fold
@@ -39,11 +38,15 @@ putWithLengthPrefix p = do
 encodeRequest :: RequestType -> C.Put -> C.Put
 encodeRequest reqType p = putWithLengthPrefix $ C.put reqType >> p
 
-data Produce =
-    Produce {-# UNPACK #-} !Topic
-            {-# UNPACK #-} !Partition
-                           (Seq ByteString)
-  deriving (Show, Read, Eq)
+-- | A request to send messages down a Kafka topic-partition pair.
+data Produce = Produce {
+    produceTopic     :: {-# UNPACK #-} !Topic
+  -- ^ Kafka topic to which the messages will be sent.
+  , producePartition :: {-# UNPACK #-} !Partition
+  -- ^ Partition of the topic.
+  , produceMessages  ::                [ByteString]
+  -- ^ List of message payloads.
+  } deriving (Show, Read, Eq)
 
 encodeProduce :: Produce -> C.Put
 encodeProduce (Produce topic partition messages) = do
@@ -60,12 +63,20 @@ putMultiProduceRequest reqs =
     encodeRequest MultiProduceRequestType $
         putWithCountPrefix reqs encodeProduce
 
-data Fetch =
-    Fetch {-# UNPACK #-} !Topic
-          {-# UNPACK #-} !Partition
-          {-# UNPACK #-} !Offset
-          {-# UNPACK #-} !Size
-  deriving (Show, Read, Eq)
+-- | A request to fetch messages from a particular Kafka topic-partition pair.
+data Fetch = Fetch {
+    fetchTopic     :: {-# UNPACK #-} !Topic
+  -- ^ Kafka topic from which messages will be fetched.
+  , fetchPartition :: {-# UNPACK #-} !Partition
+  -- ^ Partition of the topic.
+  , fetchOffset    :: {-# UNPACK #-} !Offset
+  -- ^ Offset at which the fetch will start.
+  , fetchSize      :: {-# UNPACK #-} !Size
+  -- ^ Maximum size of the returned messages.
+  --
+  -- Note, this is /not/ the number of messages. This is the maximum
+  -- combined size of the returned messages.
+  } deriving (Show, Read, Eq)
 
 encodeFetch :: Fetch -> C.Put
 encodeFetch (Fetch topic partition offset maxSize) = do
@@ -82,12 +93,17 @@ putMultiFetchRequest reqs =
     encodeRequest MultiFetchRequestType $
         putWithCountPrefix reqs encodeFetch
 
-data Offsets =
-    Offsets {-# UNPACK #-} !Topic
-            {-# UNPACK #-} !Partition
-                           !OffsetsTime
-            {-# UNPACK #-} !Count
-  deriving (Show, Read, Eq)
+-- | A request to retrieve offset information from Kafka.
+data Offsets = Offsets {
+    offsetsTopic     :: {-# UNPACK #-} !Topic
+  -- ^ Kafka topic from which offsets will be retrieved.
+  , offsetsPartition :: {-# UNPACK #-} !Partition
+  -- ^ Partition of the topic.
+  , offsetsTime      ::                !OffsetsTime
+  -- ^ Time around which offsets will be retrieved.
+  , offsetsCount     :: {-# UNPACK #-} !Count
+  -- ^ Maximum number of offsets that will be retrieved.
+  } deriving (Show, Read, Eq)
 
 putOffsetsRequest :: Offsets -> C.Put
 putOffsetsRequest (Offsets topic partition time maxNumber) =

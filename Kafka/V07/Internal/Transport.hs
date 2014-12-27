@@ -36,3 +36,5 @@ recvExactly t size = B.concat . reverse <$> loop [] 0
             if B.null chunk
               then return chunks
               else loop (chunk:chunks) $! bytesRead + B.length chunk
+ -- TODO this should return a bytestring of exactly the given size. Anything
+ -- else should be an IO exception or a protocol error.

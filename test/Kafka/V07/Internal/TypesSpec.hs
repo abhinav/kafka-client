@@ -4,7 +4,6 @@
 module Kafka.V07.Internal.TypesSpec where
 
 import Control.Applicative
-import Data.Sequence       (fromList)
 import Test.Hspec
 import Test.QuickCheck
 
@@ -68,8 +67,7 @@ instance Arbitrary I.Message where
                   <*> (B.pack . getNonEmpty <$> arbitrary)
 
 instance Arbitrary I.MessageSet where
-    arbitrary =
-        I.MessageSet . fromList <$> listOf1 somePayload
+    arbitrary = I.MessageSet <$> listOf1 somePayload
       where
         somePayload = B.pack . getNonEmpty <$> arbitrary
 

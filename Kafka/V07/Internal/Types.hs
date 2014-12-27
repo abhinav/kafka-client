@@ -23,17 +23,16 @@ import Data.ByteString       (ByteString)
 import Data.ByteString.Lazy  (fromStrict, toStrict)
 import Data.Digest.CRC32     (crc32)
 import Data.Monoid
-import Data.Sequence         (Seq)
+import Data.DList (DList)
 import Data.String
 import Data.Time             (UTCTime)
 import Data.Time.Clock.POSIX
 import Data.Word
 
+import qualified Data.DList as DList
 import qualified Codec.Compression.GZip   as GZip
 import qualified Codec.Compression.Snappy as Snappy
 import qualified Data.ByteString          as B
-import qualified Data.Foldable            as Fold
-import qualified Data.Sequence            as Seq
 import qualified Data.Serialize           as C
 
 -- | Different errors returned by Kafka.
@@ -69,7 +68,7 @@ instance C.Serialize (Maybe Error) where
     put (Just InvalidFetchSizeError) = C.putWord16be 4
     put (Just          UnknownError) = C.putWord16be (-1)
 
--- | Different forms of compression supported by the Kafka 0.7 protocol.
+-- | Methods of compression supported by Kafka.
 data Compression
     = NoCompression
     | GzipCompression
@@ -87,10 +86,15 @@ instance C.Serialize Compression where
         2 -> return SnappyCompression
         _ -> fail $ "Invalid compression code: " ++ show i
 
+-- | Different times for which offsets may be retrieved using
+-- 'Kafka.V07.Offsets'.
 data OffsetsTime
     = OffsetsLatest
+    -- ^ Retrieve the latest offsets
     | OffsetsEarliest
+    -- ^ Retrieve the earliest offsets.
     | OffsetsBefore !UTCTime
+    -- ^ Retrieve offsets before the given time.
   deriving (Show, Read, Eq, Ord)
 
 instance C.Serialize OffsetsTime where
@@ -132,6 +136,9 @@ instance C.Serialize RequestType where
             _ -> fail $ "Unknown request type: " ++ show i
 
 -- | Represents a Kafka topic.
+--
+-- This is an instance of 'IsString' so a literal string may be used to create
+-- a Topic with the @OverloadedStrings@ extension.
 newtype Topic = Topic ByteString
     deriving (Show, Read, Eq, Ord, IsString)
 
@@ -143,6 +150,10 @@ instance C.Serialize Topic where
         topicLength <- fromIntegral <$> C.getWord16be
         Topic <$> C.getByteString topicLength
 
+-- | Represents an Offset in Kafka.
+--
+-- This is an instance of 'Num' so a literal number may be used to create an
+-- Offset.
 newtype Offset = Offset Word64
     deriving (Show, Read, Eq, Ord, Num)
 
@@ -150,6 +161,10 @@ instance C.Serialize Offset where
     put (Offset o) = C.putWord64be o
     get = Offset <$> C.getWord64be
 
+-- | Represents a Kafka topic partition.
+--
+-- This is an instance of 'Num' so a literal number may be used to create a
+-- Partition.
 newtype Partition = Partition Word32
     deriving (Show, Read, Eq, Ord, Num)
 
@@ -157,6 +172,10 @@ instance C.Serialize Partition where
     put (Partition p) = C.putWord32be p
     get = Partition <$> C.getWord32be
 
+-- | Represents a size.
+--
+-- This is an instance of 'Num' so a literal number may be used to create a
+-- Size.
 newtype Size = Size Word32
     deriving (Show, Read, Eq, Ord, Num)
 
@@ -164,6 +183,10 @@ instance C.Serialize Size where
     put (Size s) = C.putWord32be s
     get = Size <$> C.getWord32be
 
+-- | Represents a Count.
+--
+-- This is an instance of 'Num' so a literal number may be used to create a
+-- Size.
 newtype Count = Count Word32
     deriving (Show, Read, Eq, Ord, Num)
 
@@ -176,10 +199,13 @@ data Message = Message {
     messageCompression :: !Compression
   -- ^ Compression used for the message.
   --
-  -- If this is anything but 'NoCompression', this message probably contains
-  -- other messages in it.
+  -- If this is anything but 'NoCompression', this message contains other
+  -- messages in it.
   , messagePayload     :: !ByteString
   -- ^ Message payload.
+  --
+  -- If the message is using any compression scheme, the payload contains
+  -- other messages in the same format.
   } deriving (Show, Read, Eq, Ord)
 
 instance C.Serialize Message where
@@ -216,20 +242,20 @@ instance C.Serialize Message where
 -- | Represents a collection of message payloads.
 --
 -- These are compressed into a single message when being sent.
-newtype MessageSet = MessageSet { fromMessageSet :: Seq ByteString }
+newtype MessageSet = MessageSet { fromMessageSet :: [ByteString] }
     deriving (Show, Read, Eq, Monoid)
 
 instance C.Serialize MessageSet where
     put (MessageSet messages) = C.put (Message SnappyCompression payload)
       where
         payload = Snappy.compress . C.runPut $
-                    Fold.mapM_ (C.put . Message NoCompression) messages
+                    mapM_ (C.put . Message NoCompression) messages
 
-    get = MessageSet <$> (C.get >>= readMessages)
+    get = MessageSet . DList.toList <$> (C.get >>= readMessages)
       where
-        readMessages :: Message -> C.Get (Seq ByteString)
+        readMessages :: Message -> C.Get (DList ByteString)
         readMessages (Message NoCompression payload) =
-            return (Seq.singleton payload)
+            return (DList.singleton payload)
         readMessages (Message compression payload) = do
             messages <- either fail return $
                         C.runGet (many C.get) decompressedPayload
