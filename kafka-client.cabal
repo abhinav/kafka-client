@@ -1,6 +1,6 @@
 name          : kafka-client
 version       : 0.1.0.0
-synopsis      : Haskell client library for Apache Kafka.
+synopsis      : Low-level Haskell client library for Apache Kafka 0.7.
 license       : MIT
 license-file  : LICENSE
 author        : Abhinav Gupta
@@ -8,11 +8,15 @@ maintainer    : mail@abhinavg.net
 category      : Network
 build-type    : Simple
 cabal-version : >=1.10
+description   :
+    This package implements a low-level client client library to interface
+    with <http://kafka.apache.org/ Apache Kafka> 0.7.
+    .
+    __Kafka 0.8 and newer is not yet supported.__
 
 library
   exposed-modules  : Kafka.V07
                    , Kafka.V07.Internal
-                   , Kafka.V07.Internal.Connection
                    , Kafka.V07.Internal.Request
                    , Kafka.V07.Internal.Response
                    , Kafka.V07.Internal.Transport
@@ -28,7 +32,7 @@ library
                    , time       >= 1.4
                    , zlib       >= 0.5
 
-                   -- Test suite dependencies:
+                   -- Test suite-only dependencies:
                    -- Workaround for ghc-mod #339. Uncomment while developing.
                    -- , hspec              >= 2.0
                    -- , hspec-discover     >= 2.1

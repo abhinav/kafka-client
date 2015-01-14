@@ -22,26 +22,32 @@ import Control.Applicative
 import Data.ByteString       (ByteString)
 import Data.ByteString.Lazy  (fromStrict, toStrict)
 import Data.Digest.CRC32     (crc32)
+import Data.DList            (DList)
 import Data.Monoid
-import Data.DList (DList)
 import Data.String
 import Data.Time             (UTCTime)
 import Data.Time.Clock.POSIX
 import Data.Word
 
-import qualified Data.DList as DList
 import qualified Codec.Compression.GZip   as GZip
 import qualified Codec.Compression.Snappy as Snappy
 import qualified Data.ByteString          as B
+import qualified Data.DList               as DList
 import qualified Data.Serialize           as C
 
 -- | Different errors returned by Kafka.
 data Error
     = UnknownError          -- -1
+    -- ^ Unknown error
     | OffsetOutOfRangeError --  1
+    -- ^ Offset requested is invalid or no longer available on the server.
     | InvalidMessageError   --  2
+    -- ^ A message failed to match its checksum.
     | WrongPartitionError   --  3
+    -- ^ The requested partition doesn't exist.
     | InvalidFetchSizeError --  4
+    -- ^ The maximum size requested for fetching is smaller than the message
+    -- being fetched.
   deriving (Show, Read, Eq, Ord)
 
 instance C.Serialize (Maybe Error) where
@@ -71,8 +77,13 @@ instance C.Serialize (Maybe Error) where
 -- | Methods of compression supported by Kafka.
 data Compression
     = NoCompression
+    -- ^ The message is uncompressed.
     | GzipCompression
+    -- ^ The message is compressed using @gzip@ compression and may contain
+    -- other messages in it.
     | SnappyCompression
+    -- ^ The message is compressed using @snappy@ compression and may contain
+    -- other messages in it.
   deriving (Show, Read, Eq, Ord)
 
 instance C.Serialize Compression where
@@ -87,7 +98,7 @@ instance C.Serialize Compression where
         _ -> fail $ "Invalid compression code: " ++ show i
 
 -- | Different times for which offsets may be retrieved using
--- 'Kafka.V07.Offsets'.
+-- 'Kafka.V07.offsets'.
 data OffsetsTime
     = OffsetsLatest
     -- ^ Retrieve the latest offsets
@@ -95,6 +106,14 @@ data OffsetsTime
     -- ^ Retrieve the earliest offsets.
     | OffsetsBefore !UTCTime
     -- ^ Retrieve offsets before the given time.
+    --
+    -- Keep in mind that the response will not contain the precise offset that
+    -- occurred around this time. It will return up to the specified count of
+    -- offsets in descending, each being the first offset of every segment
+    -- file for the specified partition with a modified time less than this
+    -- time, and possibly a "high water mark" for the last segment of the
+    -- partition (if it was modified before this time) which specifies the
+    -- offset at which the next message to that partition will be written.
   deriving (Show, Read, Eq, Ord)
 
 instance C.Serialize OffsetsTime where
@@ -112,6 +131,7 @@ instance C.Serialize OffsetsTime where
         t  -> return . OffsetsBefore .
                posixSecondsToUTCTime . (/ 1000) . realToFrac $ t
 
+-- | The different request types supported by Kafka.
 data RequestType
     = ProduceRequestType        -- 0
     | FetchRequestType          -- 1
@@ -238,10 +258,12 @@ instance C.Serialize Message where
         if crc32 payload == checksum
           then return (Message compression payload)
           else fail "Checksum did not match."
+            -- TODO: This should probably be InvalidMessageError
 
 -- | Represents a collection of message payloads.
 --
--- These are compressed into a single message when being sent.
+-- These are compressed into a single message using Snappy compression when
+-- being sent.
 newtype MessageSet = MessageSet { fromMessageSet :: [ByteString] }
     deriving (Show, Read, Eq, Monoid)
 

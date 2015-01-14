@@ -13,8 +13,8 @@ import Data.Monoid
 
 import qualified Data.Serialize as C
 
-import Kafka.V07.Internal.Types
 import Kafka.V07.Internal.Request
+import Kafka.V07.Internal.Types
 
 type Response a = Either Error a
 

@@ -1,9 +1,11 @@
 module Kafka.V07.Internal
-    ( module Export
+    ( module Kafka.V07.Internal.Request
+    , module Kafka.V07.Internal.Response
+    , module Kafka.V07.Internal.Transport
+    , module Kafka.V07.Internal.Types
     ) where
 
-import Kafka.V07.Internal.Connection as Export
-import Kafka.V07.Internal.Request    as Export
-import Kafka.V07.Internal.Response   as Export
-import Kafka.V07.Internal.Transport  as Export
-import Kafka.V07.Internal.Types      as Export
+import Kafka.V07.Internal.Request
+import Kafka.V07.Internal.Response
+import Kafka.V07.Internal.Transport
+import Kafka.V07.Internal.Types

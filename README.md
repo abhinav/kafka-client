@@ -1,10 +1,6 @@
-# Reference materials
+# `kafka-client`
 
-Wire Format
-:   https://cwiki.apache.org/confluence/display/KAFKA/Wire+Format
+This package provides a low-level Haskell client for [Apache
+Kafka](http://kafka.apache.org/) 0.7. **Kafka 0.8 and newer are not yet
+supported.**
 
-Writing a Driver for Kafka
-:   https://cwiki.apache.org/confluence/display/KAFKA/Writing+a+Driver+for+Kafka
-
-kafka-python version with 0.7 support
-:   https://github.com/mumrah/kafka-python/blob/0.7/kafka/client.py
