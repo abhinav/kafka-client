@@ -1,5 +1,5 @@
 {-# LANGUAGE NamedFieldPuns #-}
-module Kafka.V07.Internal.Transport
+module Kafka.Internal.Transport
     ( Transport(..)
     , recvExactly
 

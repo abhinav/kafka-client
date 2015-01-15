@@ -1,6 +1,6 @@
 {-# LANGUAGE NamedFieldPuns #-}
 -- |
--- Module      :  Kafka.V07
+-- Module      :  Kafka
 -- Copyright   :  Abhinav Gupta 2015
 -- License     :  MIT
 --
@@ -10,7 +10,7 @@
 --
 -- A library to interact with Apache Kafka 0.7.
 --
-module Kafka.V07
+module Kafka
     (
     -- * Main interface
     --
@@ -60,7 +60,7 @@ import Data.Monoid
 
 import qualified Data.Serialize as C
 
-import Kafka.V07.Internal
+import Kafka.Internal
 
 -- | Receives the next response from the connection using the given
 -- deserializer.

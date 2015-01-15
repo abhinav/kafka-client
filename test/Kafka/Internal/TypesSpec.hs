@@ -1,7 +1,7 @@
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE StandaloneDeriving         #-}
-module Kafka.V07.Internal.TypesSpec where
+module Kafka.Internal.TypesSpec where
 
 import Control.Applicative
 import Test.Hspec
@@ -11,7 +11,7 @@ import qualified Data.ByteString as B
 import qualified Data.Serialize  as C
 import qualified Data.Time       as T
 
-import qualified Kafka.V07.Internal.Types as I
+import qualified Kafka.Internal.Types as I
 
 instance Arbitrary I.Error where
     arbitrary = elements [

@@ -2,7 +2,7 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE NamedFieldPuns             #-}
 {-# LANGUAGE OverlappingInstances       #-}
-module Kafka.V07.Internal.Types
+module Kafka.Internal.Types
     ( Error(..)
     , Compression(..)
     , OffsetsTime(..)
@@ -98,7 +98,7 @@ instance C.Serialize Compression where
         _ -> fail $ "Invalid compression code: " ++ show i
 
 -- | Different times for which offsets may be retrieved using
--- 'Kafka.V07.offsets'.
+-- 'Kafka.offsets'.
 data OffsetsTime
     = OffsetsLatest
     -- ^ Retrieve the latest offsets

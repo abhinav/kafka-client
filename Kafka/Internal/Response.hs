@@ -1,4 +1,4 @@
-module Kafka.V07.Internal.Response
+module Kafka.Internal.Response
     ( Response
     , FetchResponse(..)
     , getFetchResponse
@@ -13,15 +13,15 @@ import Data.Monoid
 
 import qualified Data.Serialize as C
 
-import Kafka.V07.Internal.Request
-import Kafka.V07.Internal.Types
+import Kafka.Internal.Request
+import Kafka.Internal.Types
 
 type Response a = Either Error a
 
--- | Result of a single Kafka 'Kafka.V07.Fetch'.
+-- | Result of a single Kafka 'Kafka.Fetch'.
 data FetchResponse = FetchResponse {
     fetchMessages  ::                [ByteString]
-  -- ^ List of messages yielded for the 'Kafka.V07.Fetch' request.
+  -- ^ List of messages yielded for the 'Kafka.Fetch' request.
   , fetchNewOffset :: {-# UNPACK #-} !Offset
   -- ^ New offset at which the next 'Fetch' request should start reading to
   -- get the messages that follow.

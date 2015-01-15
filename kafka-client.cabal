@@ -1,5 +1,5 @@
 name          : kafka-client
-version       : 0.1.0.0
+version       : 0.7.0.0
 synopsis      : Low-level Haskell client library for Apache Kafka 0.7.
 license       : MIT
 license-file  : LICENSE
@@ -15,12 +15,12 @@ description   :
     __Kafka 0.8 and newer is not yet supported.__
 
 library
-  exposed-modules  : Kafka.V07
-                   , Kafka.V07.Internal
-                   , Kafka.V07.Internal.Request
-                   , Kafka.V07.Internal.Response
-                   , Kafka.V07.Internal.Transport
-                   , Kafka.V07.Internal.Types
+  exposed-modules  : Kafka
+                   , Kafka.Internal
+                   , Kafka.Internal.Request
+                   , Kafka.Internal.Response
+                   , Kafka.Internal.Transport
+                   , Kafka.Internal.Types
   ghc-options      : -Wall
   build-depends    : base       >= 4.7   && < 4.8
                    , bytestring >= 0.10

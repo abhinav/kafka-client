@@ -1,4 +1,4 @@
-module Kafka.V07.Internal.Request (
+module Kafka.Internal.Request (
       Produce(..)
     , putProduceRequest
     , putMultiProduceRequest
@@ -19,7 +19,7 @@ import qualified Data.ByteString as B
 import qualified Data.Foldable   as Fold
 import qualified Data.Serialize  as C
 
-import Kafka.V07.Internal.Types
+import Kafka.Internal.Types
 
 -- | 'Put's the items in the given Foldable in-order and prepends the result
 -- with a 16-bit integer containing the total number of items that were put.
@@ -79,7 +79,7 @@ putMultiProduceRequest reqs =
 
 -- | A request to fetch messages from a particular Kafka topic-partition pair.
 --
--- 'Kafka.V07.FetchResponse' contains responses for this kind of request.
+-- 'Kafka.FetchResponse' contains responses for this kind of request.
 data Fetch = Fetch {
     fetchTopic     :: {-# UNPACK #-} !Topic
   -- ^ Kafka topic from which messages will be fetched.
@@ -92,7 +92,7 @@ data Fetch = Fetch {
   -- means that if an offset is specified here that is not a real message
   -- start, Kafka will spit out garbage.
   --
-  -- Use 'Kafka.V07.offsets' to find valid offsets.
+  -- Use 'Kafka.offsets' to find valid offsets.
   , fetchSize      :: {-# UNPACK #-} !Size
   -- ^ Maximum size of the returned messages.
   --
