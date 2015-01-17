@@ -14,6 +14,9 @@ description   :
     with <http://kafka.apache.org/ Apache Kafka> 0.7.
     .
     __Kafka 0.8 and newer are not yet supported.__
+extra-source-files:
+    README.md
+    CHANGES.md
 
 library
   exposed-modules  : Kafka
