@@ -22,6 +22,7 @@ git rm -rf .
 popd
 
 pushd "$ROOT"
+cabal configure
 cabal haddock \
 	--haddock-options="--odir=gh-pages $OPTIONS" \
 	--html-location="http://hackage.haskell.org/packages/archive/\$pkg/latest/doc/html"
