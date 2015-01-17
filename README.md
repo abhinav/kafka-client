@@ -4,6 +4,8 @@
 This package provides a low-level Haskell client for [Apache Kafka][] 0.7.
 **Kafka 0.8 and newer are not yet supported.**
 
+Package documentation is available on [Hackage][] and [here][].
+
 <dl>
 <dt>
 Why Kafka 0.7?
@@ -21,3 +23,5 @@ with a Kafka 0.8 system, or receive a pull request, the answer is no.
 </dl>
 
   [Apache Kafka]: http://kafka.apache.org/
+  [Hackage]: http://hackage.haskell.org/package/kafka-client
+  [here]: http://abhinavg.net/haskell-kafka-client/
