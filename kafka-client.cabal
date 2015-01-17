@@ -4,7 +4,7 @@ synopsis      : Low-level Haskell client library for Apache Kafka 0.7.
 license       : MIT
 license-file  : LICENSE
 author        : Abhinav Gupta
-maintainer    : mail@abhinavg.net
+maintainer    : Abhinav Gupta <mail@abhinavg.net>
 category      : Network
 build-type    : Simple
 cabal-version : >=1.10

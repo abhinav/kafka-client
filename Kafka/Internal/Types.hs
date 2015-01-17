@@ -1,6 +1,5 @@
 {-# LANGUAGE FlexibleInstances          #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
-{-# LANGUAGE NamedFieldPuns             #-}
 {-# LANGUAGE OverlappingInstances       #-}
 module Kafka.Internal.Types
     ( Error(..)

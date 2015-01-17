@@ -149,8 +149,8 @@ fetch transport reqs = case reqs of
 --
 -- @
 -- 'withConnection' \"localhost\" 9092 $ \\conn -> do
---   Right [o] <- offsets conn (Offsets \"topic\" 0 OffsetsEarliest 1)
---   fetch conn ['Fetch' \"topic\" 0 o 1024] >>= doSomething
+--   Right [os] <- offsets conn (Offsets \"topic\" 0 OffsetsEarliest 1)
+--   fetch conn ['Fetch' \"topic\" (Partition 0) os 10] >>= doSomething
 -- @
 --
 -- Note that string literals may be used in place of 'Topic' (with the

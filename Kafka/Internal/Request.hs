@@ -68,10 +68,12 @@ encodeProduce (Produce topic partition messages) = do
     C.put partition
     putWithLengthPrefix (C.put (MessageSet messages))
 
+-- | @Put@s the given single @Produce@ request.
 putProduceRequest :: Produce -> C.Put
 putProduceRequest =
     encodeRequest ProduceRequestType . encodeProduce
 
+-- | @Put@s the given @MultiProduce@ request.
 putMultiProduceRequest :: [Produce] -> C.Put
 putMultiProduceRequest reqs =
     encodeRequest MultiProduceRequestType $
@@ -107,9 +109,11 @@ encodeFetch (Fetch topic partition offset maxSize) = do
     C.put offset
     C.put maxSize
 
+-- | @Put@s the given single @Fetch@ request.
 putFetchRequest :: Fetch -> C.Put
 putFetchRequest = encodeRequest FetchRequestType . encodeFetch
 
+-- | @Put@s the given @MultiFetch@ request.
 putMultiFetchRequest :: [Fetch] -> C.Put
 putMultiFetchRequest reqs =
     encodeRequest MultiFetchRequestType $
@@ -138,6 +142,7 @@ data Offsets = Offsets {
   -- ^ Maximum number of offsets that will be retrieved.
   } deriving (Show, Read, Eq)
 
+-- | @Put@s the given @Offsets@ request.
 putOffsetsRequest :: Offsets -> C.Put
 putOffsetsRequest (Offsets topic partition time maxNumber) =
     encodeRequest OffsetsRequestType $ do
