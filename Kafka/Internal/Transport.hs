@@ -70,7 +70,6 @@ getAddrInfo host port = head <$>
 -- of failure.
 connect :: ByteString -> Int -> IO Socket
 connect host port = do
-    -- TODO Accept a config instead. Config will specify the buffer size.
     addrInfo <- getAddrInfo host port
     socket <- N.socket N.AF_INET N.Stream N.defaultProtocol
     N.connect socket (N.addrAddress addrInfo) `E.onException` N.close socket
