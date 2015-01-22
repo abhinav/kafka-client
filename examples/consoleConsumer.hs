@@ -21,7 +21,7 @@ main = do
   withConnection "localhost" 9092 $ \conn -> do
     startOffset:_ <- offsets conn (Offsets topic 0 OffsetsLatest 10)
                         >>= either (fail . show) return
-    loop conn (Fetch topic 0 startOffset 1024)
+    loop conn (Fetch topic 0 startOffset (1024 * 1024))
   where
     loop conn fetchReq = do
         [FetchResponse{
