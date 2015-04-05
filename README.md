@@ -24,4 +24,4 @@ with a Kafka 0.8 system, or receive a pull request, the answer is no.
 
   [Apache Kafka]: http://kafka.apache.org/
   [Hackage]: http://hackage.haskell.org/package/kafka-client
-  [here]: http://abhinavg.net/haskell-kafka-client/
+  [here]: http://abhinavg.net/kafka-client/
