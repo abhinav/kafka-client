@@ -1,7 +1,7 @@
 name          : kafka-client
 version       : 0.7.0.0
 synopsis      : Low-level Haskell client library for Apache Kafka 0.7.
-homepage      : https://github.com/abhinav/haskell-kafka-client
+homepage      : https://github.com/abhinav/kafka-client
 license       : MIT
 license-file  : LICENSE
 author        : Abhinav Gupta
@@ -103,4 +103,4 @@ test-suite integration-test
 
 source-repository head
     type: git
-    location: git://github.com/abhinav/haskell-kafka-client.git
+    location: git://github.com/abhinav/kafka-client.git
