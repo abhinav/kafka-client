@@ -10,7 +10,7 @@ findUp() {
 
 ROOT=$(findUp "." "kafka-client.cabal")
 
-BASE="https://github.com/abhinav/haskell-kafka-client/tree/master"
+BASE="https://github.com/abhinav/kafka-client/tree/master"
 
 OPTIONS="\
 	--source-base=\"$BASE/\" \
