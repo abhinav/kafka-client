@@ -1,5 +1,5 @@
 name          : kafka-client
-version       : 0.7.0.0
+version       : 0.7.0.1
 synopsis      : Low-level Haskell client library for Apache Kafka 0.7.
 homepage      : https://github.com/abhinav/kafka-client
 license       : MIT
@@ -28,7 +28,7 @@ library
                    , Kafka.Internal.Types
   hs-source-dirs   : src
   ghc-options      : -Wall
-  build-depends    : base       >= 4.7   && < 4.8
+  build-depends    : base       >= 4.7   && < 4.9
 
                    , bytestring >= 0.10
                    , cereal     >= 0.4
